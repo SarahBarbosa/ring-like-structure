@@ -7,9 +7,11 @@ from matplotlib.axes import Axes
 
 from typing import Tuple
 
-def plot_hist(ax: Axes, x: np.ndarray, y: np.ndarray, bins: int, xlabel: str, ylabel: str, fig: plt.Figure) -> Tuple:
+
+def plot_hist(ax: Axes, x: np.ndarray, y: np.ndarray, bins: int, interpolation: str, xlabel: str, ylabel: str,
+              cmap: str, fig: plt.Figure) -> Tuple:
     """
-    Plots a 2D histogram on the given axes.
+    Plots a 2D histogram on the given axes with interpolation.
 
     Parameters
     ----------
@@ -19,10 +21,18 @@ def plot_hist(ax: Axes, x: np.ndarray, y: np.ndarray, bins: int, xlabel: str, yl
         The data for the x-axis.
     y : numpy.ndarray
         The data for the y-axis.
+    bins : int
+        The number of bins for the histogram.
+    interpolation: str
+        The interpolation method used. Supported values are 'none', 'antialiased', 'nearest', 'bilinear', 'bicubic', 'spline16', 'spline36', 
+        'hanning', 'hamming', 'hermite', 'kaiser', 'quadric', 'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos', 'blackman'.
     xlabel : str
         The label for the x-axis.
     ylabel : str
         The label for the y-axis.
+    cmap : str
+        The Colormap instance or registered colormap name used to map scalar data to colors.
+        https://matplotlib.org/stable/users/explain/colors/colormaps.html
     fig : matplotlib.figure.Figure
         The figure to which the colorbar will be added.
 
@@ -31,19 +41,26 @@ def plot_hist(ax: Axes, x: np.ndarray, y: np.ndarray, bins: int, xlabel: str, yl
     Tuple
         The return value of `ax.hist2d` which includes the histogram.
     """
-    h = ax.hist2d(x, y, bins=(bins, bins), cmap="coolwarm", range=np.array([[-150, 150], [-150, 150]]))
-
-    cbar = fig.colorbar(h[3], ax=ax, pad=0)
+    # Compute the 2D histogram
+    h, xedges, yedges = np.histogram2d(x, y, bins=bins, range=[[-150, 150], [-150, 150]])
+    
+    # Display the histogram with interpolation
+    extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+    im = ax.imshow(h.T, origin='lower', interpolation=interpolation, extent=extent, cmap=cmap)
+    
+    # Add the colorbar
+    cbar = fig.colorbar(im, ax=ax, pad=0)
     cbar.ax.text(0.5, 1.05, "# of stars", transform=cbar.ax.transAxes, ha="center", fontsize=11)
     cbar.ax.tick_params(labelsize=12)
-    cbar.ax.minorticks_off()
 
+    # Set labels
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
+    # Set background color
     ax.set_facecolor(plt.cm.viridis(0))
-    return h
-
+    
+    return h, xedges, yedges
 
 def labelLine(line: mlines.Line2D, x: float, label: str = None, align: bool = True, **kwargs) -> None:
     """

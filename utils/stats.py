@@ -158,35 +158,47 @@ def trimmean2(x: np.ndarray, p: float) -> float:
 def process_data(ttx: np.ndarray, tty: np.ndarray, x: np.ndarray, y: np.ndarray, 
                  vsini: np.ndarray, B: int, trimpct: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Processes the data to calculate spatial statistics of vsini.
+    Processes the data to calculate spatial statistics of vsini across defined grid cells.
 
     Parameters:
     -----------
     ttx : np.ndarray
-        Coordinates along the X-axis to define the analysis space.
+        Array of grid boundaries along the X-axis to define the analysis space.
     tty : np.ndarray
-        Coordinates along the Y-axis to define the analysis space.
+        Array of grid boundaries along the Y-axis to define the analysis space.
     x : np.ndarray
-        X coordinates of the observations.
+        Array of observed X coordinates.
     y : np.ndarray
-        Y coordinates of the observations.
+        Array of observed Y coordinates.
     vsini : np.ndarray
-        vsini values (stellar rotation velocity) of the observations.
+        Array of vsini values (projected rotational velocity) for the observations.
     B : int
-        Number of bootstrap resamplings.
+        Number of bootstrap resamplings to perform for estimating uncertainties.
     trimpct : float
-        Trimming percentage for trimmed mean.
+        Percentage of data to trim from each end when computing the trimmed mean in bootstrap samples.
 
     Returns:
     --------
     meanoriginal : np.ndarray
-        Median of vsini from the original sample per space cell.
+        Array containing the median vsini values from the original sample in each grid cell.
     boot_mean : np.ndarray
-        Median of vsini from bootstrap resampling per space cell.
+        Array containing the median of bootstrap sample means in each grid cell.
+    boot_se : np.ndarray
+        Array containing the standard error of bootstrap sample means in each grid cell.
+    ci1 : np.ndarray
+        Array containing the lower bounds of the 99% confidence interval for bootstrap means in 
+        each grid cell.
+    ci2 : np.ndarray
+        Array containing the upper bounds of the 99% confidence interval for bootstrap means in 
+        each grid cell.
     largura : np.ndarray
-        Width of the bootstrap confidence interval per space cell.
-    shape : np.ndarray
-        Shape index per space cell.
+        Array containing the width of the 99% confidence interval (ci2 - ci1) for bootstrap means 
+        in each grid cell.
+    countfXY : np.ndarray
+        Array containing the count of observations in each grid cell.
+    sigma_distance : np.ndarray
+        Array containing the number of standard errors by which the median of the original sample 
+        deviates from the bootstrap mean.
     """
 
     # Determine the number of cells along X and Y coordinates
@@ -200,6 +212,8 @@ def process_data(ttx: np.ndarray, tty: np.ndarray, x: np.ndarray, y: np.ndarray,
     ci1 = np.zeros((Ny, Nx))            # Lower confidence interval bootstrap
     ci2 = np.zeros((Ny, Nx))            # Upper confidence interval bootstrap
     countfXY = np.zeros((Ny, Nx))       # Observation count per space cell
+    sigma_distance = np.zeros((Ny, Nx)) # Distance in standard errors between the median of
+                                        # the original sample and the bootstrap mean
 
     # Loop over each space cell
     for j in range(Nx):
@@ -225,12 +239,16 @@ def process_data(ttx: np.ndarray, tty: np.ndarray, x: np.ndarray, y: np.ndarray,
                 ci1[i, j] = ci[0]
                 ci2[i, j] = ci[1]
 
+                # Calculate the number of standard deviations between the original median and 
+                # the bootstrap median
+                sigma_distance[i, j] = np.abs(meanoriginal[i, j] - boot_mean[i, j]) / boot_se[i, j]
+
     # Calculate shape index
     largura = ci2 - ci1
     shape = (ci2 - boot_mean) / (boot_mean - ci1)
     shape[np.isnan(shape)] = 0
 
-    return meanoriginal, boot_mean, largura, shape
+    return meanoriginal, boot_mean, boot_se, ci1, ci2, largura, shape, countfXY, sigma_distance
 
 def calculate_autocorrelation_2d(data: np.ndarray) -> np.ndarray:
     """
