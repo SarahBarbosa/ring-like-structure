@@ -1,3 +1,7 @@
+# Ignorando os outputs
+docs/period_likelihood/*_plike.txt
+docs/period_likelihood_GCS/*_plike.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
