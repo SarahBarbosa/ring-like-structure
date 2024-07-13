@@ -1,6 +1,8 @@
 # Ignorando os outputs
 docs/period_likelihood/*_plike.txt
 docs/period_likelihood_GCS/*_plike.txt
+docs/period_likelihood/gpn100-bs10_mcmc.pkl
+docs/period_likelihood_GCS/gpn100-bs10_mcmc.pkl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
