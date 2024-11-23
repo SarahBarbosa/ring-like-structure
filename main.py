@@ -9,8 +9,8 @@ from functions import *
 # User-defined parameters
 TC = 20                         # Increment value
 UL = 150                        # Upper limit of parameter interval
-data_selection = 'G'          # Options: 'F', 'G', 'ALL'
-PLANE = 'ZY'                    # Options: 'XY', 'XZ', 'ZY'
+DATA_SELECTION = 'G'          # Options: 'F', 'G', 'ALL'
+PLANE = 'XZ'                    # Options: 'XY', 'XZ', 'ZY'
 B = 1000                        # Number of bootstrap samples
 INTERVAL = 1                    # Grid interval
 CL = 95                         # Confidence level
@@ -258,11 +258,11 @@ print(f"Spearman p-value for G stars: {spearman_p_valueg}")
 
 ################################### FIGURE 5 ###################################
 
-if data_selection == 'F':
+if DATA_SELECTION == 'F':
     data = F
-elif data_selection == 'G':
+elif DATA_SELECTION == 'G':
     data = G
-elif data_selection == 'ALL':
+elif DATA_SELECTION == 'ALL':
     data = ALL
 else:
     raise ValueError("Invalid data selection. Choose 'F', 'G', or 'ALL'.")
@@ -331,7 +331,7 @@ for j in range(Nx):
             bootout = np.array([trimmean2(samples[:, b], TRIMPCT) for b in range(B)])
 
             # Compute bootstrap statistics
-            boot_true = trimmean2(vsini_condition, TRIMPCT)
+            #boot_true = trimmean2(vsini_condition, TRIMPCT)
             boot_mean[i, j] = np.mean(bootout)
             boot_se[i, j] = np.std(bootout)
             meanbootstrap[i, j] = boot_mean[i, j]
@@ -363,8 +363,8 @@ data_dict1 = {
     r'$v \sin i$ [km/s] (q = 1/2)': percentile50,
     r'$v \sin i$ [km/s] (q = 3/4)': percentile75
 }
-plotfig(data_dict1, UL, PLANE, data_selection, figure_number=5, OUTDIR=OUTDIR)
-print(f"\n>> Image successfully saved as 'fig5_FG.png' in {OUTDIR} folder")
+plotfig(data_dict1, UL, PLANE, DATA_SELECTION, figure_number=5, OUTDIR=OUTDIR)
+print(f"\n>> Image successfully saved as 'fig5_{DATA_SELECTION}_{PLANE}.png' in {OUTDIR} folder")
 
 ################################### FIGURE 6 ###################################
 
@@ -374,68 +374,79 @@ data_dict2 = {
     r'$v \sin i$ [km/s]' + '\n' + 'of bootstrap resampling (q=1/2)': percentile50boot,
     r'$v \sin i$ [km/s]' + '\n' + 'of bootstrap resampling (q=3/4)': percentile75boot
 }
-plotfig(data_dict2, UL, PLANE, data_selection, figure_number=6, OUTDIR=OUTDIR)
-print(f">> Image successfully saved as 'fig6_FG.png' in {OUTDIR} folder")
+plotfig(data_dict2, UL, PLANE, DATA_SELECTION, figure_number=6, OUTDIR=OUTDIR)
+print(f">> Image successfully saved as 'fig6_{DATA_SELECTION}_{PLANE}.png' in {OUTDIR} folder")
 
 ################################### FIGURE 7 ###################################
 
 data_dict3 = {
-    'median (v sini) [km/s]' + '\n' + 'of original sample': meanoriginal,
-    'median (v sini) [km/s]' + '\n' + 'of bootstrap resampling': boot_mean,
+    r'$\langle v \sin i \rangle$ [km/s]' + '\n' + 'of original sample': meanoriginal,
+    r'$\langle v \sin i \rangle$ [km/s]' + '\n' + 'of bootstrap resampling': boot_mean,
     'Length Index': length,
     'Shape Index': shape
 }
-plotfig(data_dict3, UL, PLANE, data_selection, figure_number=7, OUTDIR=OUTDIR)
-print(f">> Image successfully saved as 'fig7_FG.png' in {OUTDIR} folder")
+plotfig(data_dict3, UL, PLANE, DATA_SELECTION, figure_number=7, OUTDIR=OUTDIR)
+print(f">> Image successfully saved as 'fig7_{DATA_SELECTION}_{PLANE}.png' in {OUTDIR} folder")
 
 ################################### FIGURE 8 ###################################
 
-bins_range = np.arange(0, 180, 20)  # Distance bins
+bins_range = np.arange(0, 300, 30)  # Distance bins
 
-# Copy the DataFrame and calculate plane distances
-data_copy = data.copy()
-data_copy["XY"] = np.sqrt(data_copy["X"] ** 2 + data_copy["Y"] ** 2)
-data_copy["XZ"] = np.sqrt(data_copy["X"] ** 2 + data_copy["Z"] ** 2)
-data_copy["ZY"] = np.sqrt(data_copy["Z"] ** 2 + data_copy["Y"] ** 2)
+def process_data(data, PLANE):
+    data_copy = data.copy()
+    data_copy["XY"] = np.sqrt(data_copy["X"] ** 2 + data_copy["Y"] ** 2)
+    data_copy["XZ"] = np.sqrt(data_copy["X"] ** 2 + data_copy["Z"] ** 2)
+    data_copy["ZY"] = np.sqrt(data_copy["Z"] ** 2 + data_copy["Y"] ** 2)
+    data_clean = remove_outliers(data_copy, "vsini")  # Remove outliers using IQR
 
-# Remove outliers from 'vsini'
-data_clean = remove_outliers(data_copy, "vsini")
+    # Create distance bins based on the selected plane
+    if PLANE == 'XY':
+        distance_column = 'XY'
+    elif PLANE == 'XZ':
+        distance_column = 'XZ'
+    elif PLANE == 'ZY':
+        distance_column = 'ZY'
+    else:
+        raise ValueError("Invalid plane selection. Choose 'XY', 'XZ', or 'ZY'.")
+    
+    data_clean["distance_bins"] = pd.cut(data_clean[distance_column], bins_range)
+    
+    return data_clean
 
-# Create distance bins based on the selected plane
-if PLANE == 'XY':
-    distance_column = 'XY'
-elif PLANE == 'XZ':
-    distance_column = 'XZ'
-elif PLANE == 'ZY':
-    distance_column = 'ZY'
-else:
-    raise ValueError("Invalid plane selection. Choose 'XY', 'XZ', or 'ZY'.")
+# Process F and G datasets
+F_clean = process_data(F, PLANE)
+G_clean = process_data(G, PLANE)
 
-data_clean["distance_bins"] = pd.cut(data_clean[distance_column], bins_range)
+# Add source labels and combine datasets
+F_clean["Source"] = "F"
+G_clean["Source"] = "G"
+combined_data = pd.concat([F_clean, G_clean], ignore_index=True)
 
 # Filters and labels for Galactic Longitude (GLON)
 filters_glon = [
-    (data_clean["GLON"] < 90),
-    (data_clean["GLON"] >= 90) & (data_clean["GLON"] < 180),
-    (data_clean["GLON"] >= 180) & (data_clean["GLON"] < 270),
-    (data_clean["GLON"] >= 270),
+    (combined_data["GLON"] < 90),
+    (combined_data["GLON"] >= 90) & (combined_data["GLON"] < 180),
+    (combined_data["GLON"] >= 180) & (combined_data["GLON"] < 270),
+    (combined_data["GLON"] >= 270),
 ]
-ylabels_glon = ["l < 90°", "90° ≤ l < 180°", "180° ≤ l < 270°", "l ≥ 270°"]
+ylabels_glon = ["(l < 90°)", "(90° ≤ l < 180°)", "(180° ≤ l < 270°)", "(l ≥ 270°)"]
 
 # Plot vsini subplots for GLON
-plotvsini(data_clean, filters_glon, bins_range, ylabels_glon, PLANE, OUTDIR, data_selection, figure_name='fig8')
+plotvsini(combined_data, filters_glon, ylabels_glon, PLANE, 8, OUTDIR)
+print(f">> Image successfully saved as 'fig8_{PLANE}.png' in {OUTDIR} folder")
 
 ################################### FIGURE 9 ###################################
 
 # Filters and labels for Galactic Latitude (GLAT)
 filters_glat = [
-    (data_clean["GLAT"] < -45),
-    (data_clean["GLAT"] >= -45) & (data_clean["GLAT"] < 0),
-    (data_clean["GLAT"] >= 0) & (data_clean["GLAT"] < 45),
-    (data_clean["GLAT"] >= 45),
+    (combined_data["GLAT"] < -45),
+    (combined_data["GLAT"] >= -45) & (combined_data["GLAT"] < 0),
+    (combined_data["GLAT"] >= 0) & (combined_data["GLAT"] < 45),
+    (combined_data["GLAT"] >= 45),
 ]
-ylabels_glat = ["b < -45°", "-45° ≤ b < 0°", "0° ≤ b < 45°", "b ≥ 45°"]
+ylabels_glat = ["(b < -45°)", "(-45° ≤ b < 0°)", "(0° ≤ b < 45°)", "(b ≥ 45°)"]
 
 # Plot vsini subplots for GLAT
-plotvsini(data_clean, filters_glat, bins_range, ylabels_glat, PLANE, OUTDIR, data_selection, figure_name='fig9')
+plotvsini(combined_data, filters_glat, ylabels_glat, PLANE, 9, OUTDIR)
+print(f">> Image successfully saved as 'fig9_{PLANE}.png' in {OUTDIR} folder")
 

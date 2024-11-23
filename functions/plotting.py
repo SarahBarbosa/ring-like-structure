@@ -137,51 +137,44 @@ def plotfig(data_dict, ul, plane, data_selection, figure_number, OUTDIR):
     plt.savefig(OUTDIR+f"/fig{figure_number}_{data_selection}_{plane}.png", bbox_inches="tight", dpi=400)
     plt.close(fig)
 
-def plotvsini(data, filters, bins_range, ylabels, PLANE, OUTDIR, data_selection, figure_name):
+def plotvsini(combined_data, filters, ylabels, PLANE, figure_number, OUTDIR):
     """
     Plots vsini subplots based on filters and labels for a given variable (GLON or GLAT).
     """
-    # Configure the layout for subplots and boxplot
-    fig = plt.figure(figsize=(8, 12))
+    # Create subplots for combined data
+    fig = plt.figure(figsize=(10, 12))
     gs = fig.add_gridspec(3, 2, height_ratios=[1, 1, 0.7])
-
-    # Plot the subplots
     axes = [fig.add_subplot(gs[i, j]) for i in range(2) for j in range(2)]
+
     for ax, f, ylabel in zip(axes, filters, ylabels):
-        # Filter data
-        subset = data[f]
-
-        # Calculate percentiles for each bin
-        grouped = subset.groupby("distance_bins")["vsini"].quantile([0.25, 0.5, 0.75]).unstack()
-
-        # Get distances and percentiles
-        distances = grouped.index.categories.mid
-        p25 = grouped[0.25]
-        p50 = grouped[0.5]
-        p75 = grouped[0.75]
-
-        # Plot percentiles
-        ax.plot(distances, p50, label="Median", color="k", linestyle="--", marker="x")
-        ax.set_xlim(8, 150)
-        ax.set_ylim(subset["vsini"].min(), subset["vsini"].max())
-
-        # Fill between 25th and 75th
-        ax.fill_between(distances, p25, p75, color="gray", alpha=0.3, label="25th & 75th")
-
-        # Subplot settings
-        ax.set_ylabel(f"v sini [km/s] after bias \n reduction {ylabel}")
-        ax.set_xlabel("")  # Remove X label for subplots
+        subset = combined_data[f]
+        grouped = subset.groupby(["Source", "distance_bins"])["vsini"].quantile([0.25, 0.5, 0.75]).unstack()
+        
+        for source, color in zip(["F", "G"], ["tab:blue", "tab:red"]):
+            if source in grouped.index.get_level_values(0):
+                group = grouped.loc[source]
+                distances = group.index.categories.mid
+                p25, p50, p75 = group[0.25], group[0.5], group[0.75]
+                ax.plot(distances, p50, label=f"{source} (Median & 25th & 75th)", color=color, 
+                        linestyle="--", marker="s")
+                ax.fill_between(distances, p25, p75, color=color, alpha=0.1)
+        
+        ax.set_ylabel(f"v sini [km/s] {ylabel}")
         ax.legend(loc="upper left")
+        ax.set_xlim(8, 150)
 
-    # Plot boxplot below the subplots
+    # Boxplot combining F and G datasets
     ax_box = fig.add_subplot(gs[2, :])
-    sns.boxplot(x="distance_bins", y="vsini", data=data, showfliers=False, ax=ax_box, color="gray")
-    ax_box.set_xlabel(f"Distance [pc] in Galactic plane ({PLANE})")
+    palette = {"F": "tab:blue", "G": "tab:red"}
+    sns.boxplot(x="distance_bins", y="vsini", hue="Source", data=combined_data, showfliers=False, 
+                ax=ax_box, palette=palette)
     ax_box.tick_params(axis='x', which='major', labelsize=12)
+    ax_box.set_xlabel(f"Distance [pc] in {PLANE} plane")
     ax_box.set_ylabel("$v \\sin i$ [km/s]")
+    ax_box.legend(loc="upper left", ncols=2)
 
-    # Adjust layout
+    # Final layout adjustments
     plt.tight_layout()
-    plt.savefig(OUTDIR + f"/{figure_name}_{data_selection}_{PLANE}.png", bbox_inches="tight", dpi=400)
+    plt.savefig(OUTDIR+f"/fig{figure_number}_{PLANE}.png", bbox_inches="tight", dpi=400)
     plt.close(fig)
 
