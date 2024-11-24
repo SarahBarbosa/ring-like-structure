@@ -142,7 +142,7 @@ def plotvsini(combined_data, filters, ylabels, PLANE, figure_number, OUTDIR):
     Plots vsini subplots based on filters and labels for a given variable (GLON or GLAT).
     """
     # Create subplots for combined data
-    fig = plt.figure(figsize=(10, 12))
+    fig = plt.figure(figsize=(9, 13))
     gs = fig.add_gridspec(3, 2, height_ratios=[1, 1, 0.7])
     axes = [fig.add_subplot(gs[i, j]) for i in range(2) for j in range(2)]
 
@@ -161,7 +161,7 @@ def plotvsini(combined_data, filters, ylabels, PLANE, figure_number, OUTDIR):
         
         ax.set_ylabel(f"v sini [km/s] {ylabel}")
         ax.legend(loc="upper left")
-        ax.set_xlim(8, 150)
+        ax.set_xlim(10, 170)
 
     # Boxplot combining F and G datasets
     ax_box = fig.add_subplot(gs[2, :])

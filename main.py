@@ -10,7 +10,7 @@ from functions import *
 TC = 20                         # Increment value
 UL = 150                        # Upper limit of parameter interval
 DATA_SELECTION = 'G'          # Options: 'F', 'G', 'ALL'
-PLANE = 'XZ'                    # Options: 'XY', 'XZ', 'ZY'
+PLANE = 'ZY'                    # Options: 'XY', 'XZ', 'ZY'
 B = 1000                        # Number of bootstrap samples
 INTERVAL = 1                    # Grid interval
 CL = 95                         # Confidence level
@@ -390,7 +390,7 @@ print(f">> Image successfully saved as 'fig7_{DATA_SELECTION}_{PLANE}.png' in {O
 
 ################################### FIGURE 8 ###################################
 
-bins_range = np.arange(0, 300, 30)  # Distance bins
+bins_range = np.arange(0, 200, 20)  # Distance bins
 
 def process_data(data, PLANE):
     data_copy = data.copy()
