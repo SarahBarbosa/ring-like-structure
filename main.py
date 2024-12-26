@@ -1,7 +1,11 @@
 import os
 import numpy  as np
 import pandas as pd
+
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+import matplotlib.colors as mcolors
+
 from scipy.stats import pearsonr, spearmanr
 
 from functions import *
@@ -9,7 +13,7 @@ from functions import *
 # User-defined parameters
 TC = 20                         # Increment value
 UL = 150                        # Upper limit of parameter interval
-DATA_SELECTION = 'G'          # Options: 'F', 'G', 'ALL'
+DATA_SELECTION = 'G'            # Options: 'F', 'G', 'ALL'
 PLANE = 'ZY'                    # Options: 'XY', 'XZ', 'ZY'
 B = 1000                        # Number of bootstrap samples
 INTERVAL = 1                    # Grid interval
@@ -66,7 +70,7 @@ fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 10), sharex=True, sharey=True)
 def plot1(glon, glat, vsini, label, ax, scaler=2):
     scatter = ax.scatter(
         glon, glat, s=vsini * scaler, c=vsini,
-        cmap="jet", ec="k", lw=0.5
+        cmap="jet", ec="k", lw=0.5,
     )
     ax.set(xlim=(0, 361), ylim=(-90, 90))
     ax.text(0.05, 0.95, label, transform=ax.transAxes, fontsize=12,
@@ -132,15 +136,15 @@ bin_edges = np.arange(2, 12, 0.5)
 _, ax = plt.subplots()
 
 # Plot histogram for F-type stars
-ax.hist(vmag_F, bins=bin_edges, ec="tab:blue", histtype="step", label="F-type")
+ax.hist(vmag_F, bins=bin_edges, color="tab:blue", ec="k", label="F-type", alpha=0.7)
 ax.set_xlim(2, 12)
 
 # Plot histogram for G-type stars
-ax.hist(vmag_G, bins=bin_edges, ec="tab:red", histtype="step", label="G-type")
+ax.hist(vmag_G, bins=bin_edges, color="tab:red", ec="k", label="G-type", alpha=0.7)
 
 # Add vertical lines for fall-off points
-ax.axvline(falloff_f, color='tab:gray', linestyle='--')
-ax.axvline(falloff_g, color='tab:gray', linestyle='--')
+# ax.axvline(falloff_f, color='gray', linestyle='--', lw=1.5)
+# ax.axvline(falloff_g, color='gray', linestyle='--', lw=1.5)
 
 # Labeling and legend
 ax.set(xlabel="Apparent magnitude [mag]", ylabel="Number of stars")
@@ -179,6 +183,34 @@ s2g, i2g, e2g = linear_regression(x2g,y2g)
 print(f"\n0-80 slope F-stars slope (95%): {s1g:.3f} +/- {e1g:.3f}")
 print(f"80-350 slope F-stars slope (95%): {s2g:.3f} +/- {e2g:.3f}")
 
+######################################################################
+
+# Sample 0-80 pc for F
+x1 = F[F["Dist"] < 80]["Dist"].values
+y1 = F[F["Dist"] < 80]["vsini"].values
+s1, i1, e1 = linear_regression(x1,y1)
+
+# Sample 80-350 pc  for F
+x2 = F[F["Dist"] > 80]["Dist"].values
+y2 = F[F["Dist"] > 80]["vsini"].values
+s2, i2, e2 = linear_regression(x2,y2)
+
+print(f"\n0-80 slope F-stars slope (95%): {s1:.3f} +/- {e1:.3f}")
+print(f"80-350 slope F-stars slope (95%): {s2:.3f} +/- {e2:.3f}")
+
+# Sample 0-80 pc for G
+x1g = G[G["Dist"] < 80]["Dist"].values
+y1g = G[G["Dist"] < 80]["vsini"].values
+s1g, i1g, e1g = linear_regression(x1g,y1g)
+
+# Sample 80-350 pc  for G
+x2g = G[G["Dist"] > 80]["Dist"].values
+y2g = G[G["Dist"] > 80]["vsini"].values
+s2g, i2g, e2g = linear_regression(x2g,y2g)
+
+print(f"\n0-80 slope F-stars slope (95%): {s1g:.3f} +/- {e1g:.3f}")
+print(f"80-350 slope F-stars slope (95%): {s2g:.3f} +/- {e2g:.3f}")
+
 ################################### FIGURE 4 ###################################
 
 X = np.linspace(0, 400, 100)
@@ -186,7 +218,7 @@ X = np.linspace(0, 400, 100)
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 10), sharex=True, sharey=True)
 
 # Scatter plots for F
-ax1.scatter(F["Dist"], F["vsini"], ec = "white", fc = "tab:gray", lw = 0.2, s = 20)
+ax1.scatter(F["Dist"], F["vsini"], ec = "white", fc = "tab:gray", lw = 0.2, s = 20, alpha=0.7)
 ax1.set_ylim(0, 140)
 ax1.set_xlim(0, 350)
 
@@ -204,7 +236,7 @@ ax1.text(0.05, 0.95, "F-type", transform=ax1.transAxes, fontsize=12,
         verticalalignment='top', bbox=dict(facecolor='white', edgecolor='black'))
 
 # and for G
-ax2.scatter(G["Dist"], G["vsini"], ec = "white", fc = "tab:gray", lw = 0.2, s = 20)
+ax2.scatter(G["Dist"], G["vsini"], ec = "white", fc = "tab:gray", lw = 0.2, s = 20, alpha=0.7)
 
 line1, = ax2.plot(X, i1g + s1g * X, "tab:blue", lw=1.5, 
                 label="0-80 pc slope", ls="--")
@@ -225,6 +257,113 @@ plt.xlabel(r"Distance $R$ [pc]")
 plt.tight_layout()
 plt.savefig(f"{OUTDIR}/fig4_FG.png", bbox_inches="tight", dpi=400)
 print(f"\n>> Image successfully saved as 'fig4_FG.png' in {OUTDIR} folder")
+
+
+################################################################################
+
+X = np.linspace(0, 400, 100)
+
+# Calculate residuals and standard deviation for each case for F-stars
+residuals_1 = F[F["Dist"] < 80]["vsini"] - (i1 + s1 * F[F["Dist"] < 80]["Dist"])
+sigma_1 = residuals_1 / np.std(residuals_1)
+
+residuals_2 = F[F["Dist"] > 80]["vsini"] - (i2 + s2 * F[F["Dist"] > 80]["Dist"])
+sigma_2 = residuals_2 / np.std(residuals_2)
+
+# Calculate residuals and standard deviation for each case for G-stars
+residuals_1g = G[G["Dist"] < 80]["vsini"] - (i1g + s1g * G[G["Dist"] < 80]["Dist"])
+sigma_1g = residuals_1g / np.std(residuals_1g)
+
+residuals_2g = G[G["Dist"] > 80]["vsini"] - (i2g + s2g * G[G["Dist"] > 80]["Dist"])
+sigma_2g = residuals_2g / np.std(residuals_2g)
+
+all_sigma = np.concatenate([sigma_1, sigma_2, sigma_1g, sigma_2g])
+min_val = np.floor(all_sigma.min())
+max_val = np.ceil(all_sigma.max())
+bins = np.arange(min_val, max_val, 2)
+
+cmap = plt.get_cmap("jet")
+#cmap = mcolors.ListedColormap(plt.get_cmap("tab20b").colors + plt.get_cmap("tab20c").colors, name="tab20b_tab20c")
+norm = mcolors.BoundaryNorm(bins, cmap.N)
+
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 10), sharex=True, sharey=True)
+ax1.set_ylim(0, 140)
+ax1.set_xlim(0, 350)
+
+# Scatter plots for F-stars
+sc1 = ax1.scatter(F[F["Dist"] < 80]["Dist"], F[F["Dist"] < 80]["vsini"], 
+            c=sigma_1, cmap=cmap, norm=norm, lw=0.2, s=20)
+sc2 = ax1.scatter(F[F["Dist"] > 80]["Dist"], F[F["Dist"] > 80]["vsini"], 
+            c=sigma_2, cmap=cmap, norm=norm, lw=0.2, s=20)
+
+line1, = ax1.plot(X, i1 + s1 * X, "k", lw=1.5, 
+                label="0-80 pc slope", ls="--")
+line2, = ax1.plot(X, i2 + s2 * X, "k", 
+                lw=1.5, label="80-350 pc slope", ls="dotted")
+
+label_line(line1, x = 280, fontsize=13, color = "k", 
+                backgroundcolor = "white")
+label_line(line2, x = 280, fontsize=13, color = "k", 
+                backgroundcolor = "white")
+
+ax1.axvline(x=80, color='k', linestyle='-')
+ax1.text(76, 130, "Division at 80 pc", rotation=90, color='black', fontsize=12, verticalalignment='top',
+        bbox=dict(facecolor='white', edgecolor='none'))
+ax1.text(0.05, 0.95, "F-type", transform=ax1.transAxes, fontsize=12,
+        verticalalignment='top', bbox=dict(facecolor='white', edgecolor='black'))
+
+# Scatter plots for G-stars
+sc3 = ax2.scatter(G[G["Dist"] < 80]["Dist"], G[G["Dist"] < 80]["vsini"], 
+                c=sigma_1g, cmap=cmap, norm=norm, lw=0.2, s=20)
+sc4 = ax2.scatter(G[G["Dist"] > 80]["Dist"], G[G["Dist"] > 80]["vsini"], 
+                c=sigma_2g,cmap=cmap, norm=norm, lw=0.2, s=20)
+
+line1, = ax2.plot(X, i1g + s1g * X, "k", lw=1.5, 
+                label="0-80 pc slope", ls="--")
+line2, = ax2.plot(X, i2g + s2g * X, "k", 
+                lw=1.5, label="80-350 pc slope", ls="dotted")
+
+label_line(line1, x = 280, fontsize=13, color = "k", 
+                backgroundcolor = "white")
+label_line(line2, x = 280, fontsize=13, color = "k", 
+                backgroundcolor = "white")
+
+ax2.axvline(x=80, color='k', linestyle='-')
+ax2.text(76, 130, "Division at 80 pc", rotation=90, color='black', fontsize=12, verticalalignment='top',
+         bbox=dict(facecolor='white', edgecolor='none'))
+
+ax2.text(0.05, 0.95, "G-type", transform=ax2.transAxes, fontsize=12,
+         verticalalignment='top', bbox=dict(facecolor='white', edgecolor='black'))
+
+fig.text(-0.02, 0.5, r"$v \sin i$ [km/s]", va='center', rotation='vertical')
+plt.xlabel(r"Distance $R$ [pc]")
+
+legend_elements_F = [
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=cmap(norm(-2)), markersize=10, label='[-3, -1)'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=cmap(norm(0)), markersize=10, label='[-1, 1)'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=cmap(norm(2)), markersize=10, label='[1, 3)'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=cmap(norm(4)), markersize=10, label='[3, 5)'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=cmap(norm(6)), markersize=10, label='[5, 7)'),
+]
+ax1.legend(handles=legend_elements_F, loc='upper right', fontsize=12, title="Residuals $\sigma$")
+
+# Add the same for G-stars
+legend_elements_G = [
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=cmap(norm(-2)), markersize=10, label='[-3, -1)'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=cmap(norm(0)), markersize=10, label='[-1, 1)'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=cmap(norm(2)), markersize=10, label='[1, 3)'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=cmap(norm(4)), markersize=10, label='[3, 5)'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=cmap(norm(6)), markersize=10, label='[5, 7)'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=cmap(norm(8)), markersize=10, label='[7, 9)'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=cmap(norm(10)), markersize=10, label='[9, 11)')
+]
+
+# Add legend to ax2
+ax2.legend(handles=legend_elements_G, loc='upper right', fontsize=12, title="Residuals $\sigma$")
+
+plt.tight_layout()
+plt.savefig(f"{OUTDIR}/fig4_FG_sigma.png", bbox_inches="tight", dpi=400)
+print(f"\n>> Image successfully saved as 'fig4_FG_sigma.png' in {OUTDIR} folder")
 
 ######################################################################
 
