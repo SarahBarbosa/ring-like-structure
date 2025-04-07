@@ -72,8 +72,10 @@ def plot1(glon, glat, vsini, label, ax, scaler=2):
         glon, glat, s=vsini * scaler, c=vsini,
         cmap="jet", ec="k", lw=0.5,
     )
-    ax.set(xlim=(0, 361), ylim=(-90, 90))
-    ax.text(0.05, 0.95, label, transform=ax.transAxes, fontsize=12,
+    ax.set(xlim=(361, 0), ylim=(-90, 90))  
+    ax.set_xticks([360, 300, 240, 180, 120, 60, 0]) 
+    ax.set_yticks([-90, -60, -30, 0, 30, 60, 90])   
+    ax.text(0.05, 0.95, label, transform=ax.transAxes, fontsize=14,
             verticalalignment='top', bbox=dict(facecolor='white', edgecolor='black'))
     return scatter
 
@@ -93,34 +95,41 @@ print(f">> Image successfully saved as 'fig1_FG.png' in {OUTDIR} folder")
 
 ################################### FIGURE 2 ###################################
 
-x = F["X"]
-y = F["Y"]
-z = F["Z"]
+xF, yF, zF = F["X"], F["Y"], F["Z"]
+xG, yG, zG = G["X"], G["Y"], G["Z"]
 
-bins = 20           # 20x20 pc² pixels
-vmin, vmax = 0, 40  # Colobar limits (40 stars into the pixel)
+bins = 20  # 20x20 pc² pixels
 
-fig, axs = plt.subplots(1, 3, figsize=(15, 4))
+fig, axs = plt.subplots(2, 3, figsize=(15, 8)) 
 
-data_pairs = [
-    (x, y, 'X [pc]', 'Y [pc]'),
-    (x, z, 'X [pc]', 'Z [pc]'),
-    (z, y, 'Z [pc]', 'Y [pc]')
+data_sets = [
+    (xF, yF, zF, "F", 40),
+    (xG, yG, zG, "G", 60)
 ]
 
-for ax, (data1, data2, xlabel, ylabel) in zip(axs, data_pairs):
-    hist, xedges, yedges = np.histogram2d(data1, data2, bins=bins, range=[[-150, 150], [-150, 150]])
-    cax = ax.pcolormesh(xedges, yedges, hist.T, cmap='jet', vmin=vmin, vmax=vmax)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.set_xlim(-150, 150)
-    ax.set_ylim(-150, 150)
-    ax.set_facecolor(plt.cm.jet(0))
-    fig.colorbar(cax, ax=ax, label='Number of Stars', pad=0)
+for row, (x, y, z, label, vmax) in enumerate(data_sets):
+    vmin = 0
+    data_pairs = [
+        (x, y, 'X [pc]', 'Y [pc]'),
+        (x, z, 'X [pc]', 'Z [pc]'),
+        (z, y, 'Z [pc]', 'Y [pc]')
+    ]
+    for col, (data1, data2, xlabel, ylabel) in enumerate(data_pairs):
+        ax = axs[row, col]
+        hist, xedges, yedges = np.histogram2d(data1, data2, bins=bins, range=[[-150, 150], [-150, 150]])
+        cax = ax.pcolormesh(xedges, yedges, hist.T, cmap='jet', vmin=vmin, vmax=vmax)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_xlim(-150, 150)
+        ax.set_ylim(-150, 150)
+        ax.set_xticks([-150, -100, -50, 0, 50, 100, 150]) 
+        ax.set_yticks([-150, -100, -50, 0, 50, 100, 150])   
+        ax.set_facecolor(plt.cm.jet(0))
+        fig.colorbar(cax, ax=ax, label=f'Number of {label} Stars', pad=0.01)
 
 plt.tight_layout()
-plt.subplots_adjust(wspace=0.4)
-plt.savefig(f"{OUTDIR}/fig2_F.png", bbox_inches="tight", dpi=400)
+plt.subplots_adjust(wspace=0.3, hspace=0.2)
+plt.savefig(f"{OUTDIR}/fig2_FG.png", bbox_inches="tight", dpi=400)
 print(f">> Image successfully saved as 'fig2_FG.png' in {OUTDIR} folder")
 
 ################################### FIGURE 3 ###################################
@@ -131,27 +140,31 @@ vmag_G = G["Vmag"]
 falloff_f = 8.5  # Decline for F-type stars
 falloff_g = 9.0  # Decline for G-type stars
 
-bin_edges = np.arange(2, 12, 0.5)
+bin_edges = np.arange(1, 13, 0.25)
 
-_, ax = plt.subplots()
+fig, (ax1, ax2) = plt.subplots(
+    2, 1, figsize=(6, 5), sharex=True,
+    gridspec_kw={'hspace': 0.08} 
+)
 
-# Plot histogram for F-type stars
-ax.hist(vmag_F, bins=bin_edges, color="tab:blue", ec="k", label="F-type", alpha=0.7)
-ax.set_xlim(2, 12)
+# F-type histogram
+ax1.hist(vmag_F, bins=bin_edges, color="tab:blue", ec="k", alpha=0.7)
+ax1.set_xlim(2, 12)
+ax1.text(0.05, 0.90, "F-type", transform=ax1.transAxes, fontsize=14,
+        verticalalignment='top', bbox=dict(facecolor='white', edgecolor='black'))
 
-# Plot histogram for G-type stars
-ax.hist(vmag_G, bins=bin_edges, color="tab:red", ec="k", label="G-type", alpha=0.7)
+# G-type histogram
+ax2.hist(vmag_G, bins=bin_edges, color="tab:red", ec="k", alpha=0.7)
+ax2.set_xlim(2, 12)
+ax2.set_xlabel("Apparent magnitude [mag]")
+ax2.text(0.05, 0.90, "G-type", transform=ax2.transAxes, fontsize=14,
+        verticalalignment='top', bbox=dict(facecolor='white', edgecolor='black'))
 
-# Add vertical lines for fall-off points
-# ax.axvline(falloff_f, color='gray', linestyle='--', lw=1.5)
-# ax.axvline(falloff_g, color='gray', linestyle='--', lw=1.5)
 
-# Labeling and legend
-ax.set(xlabel="Apparent magnitude [mag]", ylabel="Number of stars")
-ax.legend(loc="upper left")
+fig.text(0.01, 0.5, "Number of stars", va='center', rotation='vertical', fontsize=15)
 
-# Adjust layout and save the figure
 plt.tight_layout()
+plt.subplots_adjust(left=0.12) 
 plt.savefig(f"{OUTDIR}/fig3_FG.png", bbox_inches="tight", dpi=400)
 print(f">> Image successfully saved as 'fig3_FG.png' in {OUTDIR} folder")
 
@@ -232,6 +245,12 @@ label_line(line1, x = 280, fontsize=13, color = "tab:blue",
 label_line(line2, x = 280, fontsize=13, color = "tab:red", 
                 backgroundcolor = "white")
 
+ax1.axvline(x=80, color='k', linestyle='-')
+ax1.text(76, 130, "Division at 80 pc", rotation=90, color='black', fontsize=12, verticalalignment='top',
+        bbox=dict(facecolor='white', edgecolor='none'))
+ax1.text(0.05, 0.95, "F-type", transform=ax1.transAxes, fontsize=12,
+        verticalalignment='top', bbox=dict(facecolor='white', edgecolor='black'))
+
 ax1.text(0.05, 0.95, "F-type", transform=ax1.transAxes, fontsize=12,
         verticalalignment='top', bbox=dict(facecolor='white', edgecolor='black'))
 
@@ -247,6 +266,10 @@ label_line(line1, x = 280, fontsize=13, color = "tab:blue",
                 backgroundcolor = "white")
 label_line(line2, x = 280, fontsize=13, color = "tab:red", 
                 backgroundcolor = "white")
+
+ax2.axvline(x=80, color='k', linestyle='-')
+ax2.text(76, 130, "Division at 80 pc", rotation=90, color='black', fontsize=12, verticalalignment='top',
+         bbox=dict(facecolor='white', edgecolor='none'))
 
 ax2.text(0.05, 0.95, "G-type", transform=ax2.transAxes, fontsize=12,
         verticalalignment='top', bbox=dict(facecolor='white', edgecolor='black'))
@@ -516,6 +539,24 @@ data_dict2 = {
 plotfig(data_dict2, UL, PLANE, DATA_SELECTION, figure_number=6, OUTDIR=OUTDIR)
 print(f">> Image successfully saved as 'fig6_{DATA_SELECTION}_{PLANE}.png' in {OUTDIR} folder")
 
+######################## NEW FIGURE (WAGNER SUGGESTION) ########################
+
+data_dict1 = {
+    r'$\langle v \sin i \rangle$ [km/s] of original sample': meanoriginal,
+    r'$v \sin i$ [km/s] (q = 1/4)': percentile25,
+    r'$v \sin i$ [km/s] (q = 1/2)': percentile50,
+    r'$v \sin i$ [km/s] (q = 3/4)': percentile75
+}
+
+data_dict2 = {
+    r'$\langle v \sin i \rangle$ [km/s]' + '\n' + 'of bootstrap resampling': meanbootstrap,
+    r'$v \sin i$ [km/s]' + '\n' + 'of bootstrap resampling (q=1/4)': percentile25boot,
+    r'$v \sin i$ [km/s]' + '\n' + 'of bootstrap resampling (q=1/2)': percentile50boot,
+    r'$v \sin i$ [km/s]' + '\n' + 'of bootstrap resampling (q=3/4)': percentile75boot
+}
+
+plotfig_combined(data_dict1, data_dict2, UL, PLANE, DATA_SELECTION, figure_number=5, OUTDIR=OUTDIR)
+
 ################################### FIGURE 7 ###################################
 
 data_dict3 = {
@@ -526,6 +567,10 @@ data_dict3 = {
 }
 plotfig(data_dict3, UL, PLANE, DATA_SELECTION, figure_number=7, OUTDIR=OUTDIR)
 print(f">> Image successfully saved as 'fig7_{DATA_SELECTION}_{PLANE}.png' in {OUTDIR} folder")
+
+## NEW FIGURE (WAGNER SUGGESTION)
+plotfig_index(length, shape, UL, PLANE, DATA_SELECTION, figure_number=7, OUTDIR=OUTDIR)
+
 
 ################################### FIGURE 8 ###################################
 
@@ -588,4 +633,13 @@ ylabels_glat = ["(b < -45°)", "(-45° ≤ b < 0°)", "(0° ≤ b < 45°)", "(b 
 # Plot vsini subplots for GLAT
 plotvsini(combined_data, filters_glat, ylabels_glat, PLANE, 9, OUTDIR)
 print(f">> Image successfully saved as 'fig9_{PLANE}.png' in {OUTDIR} folder")
+
+########################## FIGURE 8 AND 9 TOGETHER ##########################
+
+# Combine GLON and GLAT plots
+plot_vsini_lines(combined_data, filters_glon, ylabels_glon, filters_glat, ylabels_glat, PLANE, 8, OUTDIR)
+
+# Boxplot for vsini
+plot_vsini_boxplot(combined_data, PLANE, 9, OUTDIR)
+
 
