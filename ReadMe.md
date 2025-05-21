@@ -1,1 +1,1 @@
-# Evidence of Ring-Like Structure in High-Rotation Spikes Revealed by Large Surveys (Barbosa+, in prep)
+# Evidence of a Cavity-like Structure in the Projected Rotational Velocity Distribution Around the Solar Neighborhood (Barbosa+, in prep)
