@@ -196,7 +196,7 @@ def plotfig_combined(original_dict, bootstrap_dict, ul, plane, data_selection, f
         ax.set_yticklabels(yticklabels)
 
     plt.tight_layout()
-    plt.subplots_adjust(wspace=0.5, hspace=0.28)
+    plt.subplots_adjust(wspace=0.35, hspace=0.25)
     plt.savefig(f"{OUTDIR}/fig{figure_number}_{data_selection}_{plane}_combined.png", bbox_inches="tight", dpi=400)
     plt.close(fig)
     print(f">> Image successfully saved as 'fig{figure_number}_{data_selection}_{plane}_combined.png' in {OUTDIR} folder")
